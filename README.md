@@ -19,3 +19,10 @@ Deer Population Decline and Extinction](https://journals.plos.org/plosone/articl
 
 ### Environment
 VSCode is the environment of choice. Add the Julia extension on VSCode for linting and a language server. Navigate to the `intro.jl` file and press F5 (or go to the debug tab and press play), and the necessary packages should be loaded and you should see some output
+
+## Resources
+- The paper we are implementing [Modeling Routes of Chronic Wasting Disease
+Transmission: Environmental Prion Persistence Promotes
+Deer Population Decline and Extinction](https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0019896&type=printable)
+- [Agents.jl examples and documentation](https://juliadynamics.github.io/Agents.jl/stable/examples/sir/)
+- [Mesa.py examples](https://mesa.readthedocs.io/latest/examples.html#advanced-examples)
