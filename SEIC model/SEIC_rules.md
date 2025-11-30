@@ -15,6 +15,27 @@ During each time step (per week):
 - Infected and Clinical agents shed prions
 - Envionmental prions decay
 
+Initial conditions: 
+- Populations (set N = 1500, vary distribution)
+    - Infected deer in middle of grid (I = n)
+    - No infected deer, nonzero environmental prion load (V = n)
+- Refer to Table 1 for parameter values
+- To consider: two populations of deer
+
+- Remove infected deer from population
+    - Try at different states of simulation (1 year, 5 years, 10 years, etc)
+    - Analogous to culling program early vs late
+- Introduce physical barriers on grid, analogous to isolation efforts
+
+Data to Collect:
+- Population over time, sub aggregate per SEIR state
+- Prion load: environmental vs direct (visualize using heatmap)
+- Death rate per year over 50-100 year simulation
+- Fraction of original population size
+- Proportion of deer infected by direct vs indirect transmission
+- Compare birth rate to death rate to calclate mean growth rate
+- Calculate reproductive number R0
+
 Agent Behavior:
 - Agent Movement: Deer move along grid via a random walk (To consider: movement could be altered to avoid clinical deer, i.e. deer with visible symptoms)
 - Diease Transmission: 
@@ -24,7 +45,10 @@ Agent Behavior:
     - Indirect: Susceptible agents become infected by coming into contact with enviromental proins (V) present in residing grid.
         - Prion concentration to determine probability for transmission
 - Agent Classes: SEIC classes divided into subclasses
-    - E: 35 sub classes, transition probabilities 
+    - E: 35 sub classes, transition probability equal to 1 for $E_i\to E_{i+1}$ $i = 1,\dots,15$, and $1-\rho_i$ for $E_{i+15}\to E_{i+16}$ $i = 1,\dots,20$.
+    - I: 44 sub classes, transition probability equal to 1 for $I_i\to I_{i+1}$ $i = 1,\dots,23$, and $1-\sigma_i$ for $I_{i+23}\to I_{i+24}$ $i = 1,\dots,20$.
+    - C: 35 sub classes, transition probability $1-\mu_i$ for $C_{i}\to C_{i+1}$ $i = 1,\dots,34$.
+- Calculate prion load on Infected and Clinical deer
 
 Environmental Prions:
 - Shedding: Infected (I) and Clinical (C) deer shed disease into the environment at a rate $\tau$ per agent per time step.
