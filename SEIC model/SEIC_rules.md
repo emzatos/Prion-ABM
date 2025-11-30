@@ -8,6 +8,13 @@ The agent-based model simulates CWD transmission in a population of deer living 
     - Clinical (C): Infectious and showing symptoms, capable of transmitting.
 - Environmental Disease Reservoir (V): Prions present in  environment, can infect susceptible agents through indirect transmission. Treat as spatially distributed disease pool on the grid.
 
+During each time step (per week):
+- Transmit CWD to suceptible agents via direct and indirect transmission
+- For Exposed, Infected, Clinical agents, transition disease state
+- Simulate births and (non-prion) deaths within populations
+- Infected and Clinical agents shed prions
+- Envionmental prions decay
+
 Agent Behavior:
 - Agent Movement: Deer move along grid via a random walk (To consider: movement could be altered to avoid clinical deer, i.e. deer with visible symptoms)
 - Diease Transmission: 
