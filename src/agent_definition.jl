@@ -6,6 +6,8 @@
     home_center::Tuple{Int,Int} # home range center for movement fidelity
     infection_source::Symbol    # :none, :direct, :indirect, :initial
     infection_tick::Int         # when infected (-1 if never)
+    sex::Symbol                 # M or F
+    age::Int
 end
 
 # Function used to determine how long an agent will stay in each of the SEIC stages

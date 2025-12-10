@@ -16,7 +16,7 @@ include("plotting.jl")
 
 # Export the core functions that a user might interact with
 export model_initiation, agent_step!, model_step!
-export compute_metrics, plot_dashboard, plot_transmission_analysis
+export compute_metrics, plot_dashboard, plot_transmission_analysis, plot_demographics
 export DeerAgent, step!
 export seic_color
 

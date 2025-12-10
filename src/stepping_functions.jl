@@ -22,7 +22,7 @@ function agent_step!(agent, model)
 
     model.population_grid[old_pos...] -= 1
     model.population_grid[agent.pos...] += 1
-
+    agent.age += 1
     transmit!(agent, model)
     progress_disease!(agent, model)
     shed_prions!(agent, model)
@@ -45,23 +45,8 @@ function model_step!(model)
 
     # Survival check (background + disease mortality)
     to_remove = Int[]
-    n_C = 0
-    n_E = 0
-    n_S = 0
-    n_I = 0
+
     for agent in allagents(model)
-        if agent.status == :C
-            n_C += 1
-        end
-        if agent.status == :E
-            n_E += 1
-        end
-        if agent.status == :S
-            n_S += 1
-        end
-        if agent.status == :I
-            n_I += 1
-        end
         if !check_survival!(agent, model)
             push!(to_remove, agent.id)
         end
@@ -76,6 +61,70 @@ function model_step!(model)
         remove_agent!(id, model)
     end
 
+    n_total = 0
+    n_S = 0; n_E = 0; n_I = 0; n_C = 0
+    
+    # Sex specific counts
+    m_total = 0; m_inf = 0
+    f_total = 0; f_inf = 0
+    
+    # Age specific counts
+    fawn_total = 0; fawn_inf = 0
+    yrl_total  = 0; yrl_inf  = 0
+    ad_total   = 0; ad_inf   = 0
+
+    for agent in allagents(model)
+        n_total += 1
+
+        if agent.status == :S; n_S += 1
+        elseif agent.status == :E; n_E += 1
+        elseif agent.status == :I; n_I += 1
+        elseif agent.status == :C; n_C += 1
+        end
+
+        is_inf = agent.status in (:E, :I, :C)
+
+        # Sex Counts
+        if agent.sex == :male
+            m_total += 1
+            if is_inf; m_inf += 1; end
+        else
+            f_total += 1
+            if is_inf; f_inf += 1; end
+        end
+
+        # Age Counts (in weeks)
+        if agent.age < 52
+            fawn_total += 1
+            if is_inf; fawn_inf += 1; end
+        elseif agent.age < 104
+            yrl_total += 1
+            if is_inf; yrl_inf += 1; end
+        else
+            ad_total += 1
+            if is_inf; ad_inf += 1; end
+        end
+    end
+
+    push!(model.weekly_population, n_total)
+    
+    prev = n_total > 0 ? (n_E + n_I + n_C) / n_total : 0.0
+    push!(model.weekly_prevalence, prev)
+    
+    push!(model.weekly_S, n_S)
+    push!(model.weekly_E, n_E)
+    push!(model.weekly_I, n_I)
+    push!(model.weekly_C, n_C)
+
+    # Demographic Histories
+    push!(model.prev_male, m_total > 0 ? m_inf / m_total : 0.0)
+    push!(model.prev_female, f_total > 0 ? f_inf / f_total : 0.0)
+    
+    push!(model.prev_fawn, fawn_total > 0 ? fawn_inf / fawn_total : 0.0)
+    push!(model.prev_yearling, yrl_total > 0 ? yrl_inf / yrl_total : 0.0)
+    push!(model.prev_adult, ad_total > 0 ? ad_inf / ad_total : 0.0)
+
+
     # Reproduction
     reproduction!(model)
 
@@ -85,24 +134,6 @@ function model_step!(model)
 
     model.prev_total_direct = model.total_direct
     model.prev_total_indirect = model.total_indirect
-
-    n = nagents(model)
-    push!(model.weekly_population, n)
-
-    if n > 0
-        push!(model.weekly_prevalence, (n_E + n_I + n_C) / n)
-        push!(model.weekly_S, n_S)
-        push!(model.weekly_E, n_E)
-        push!(model.weekly_I, n_I)
-        push!(model.weekly_C, n_C)
-    else
-        push!(model.weekly_prevalence, 0.0)
-        push!(model.weekly_S, 0)
-        push!(model.weekly_E, 0)
-        push!(model.weekly_I, 0)
-        push!(model.weekly_C, 0)
-    end
-
     push!(model.weekly_V_total, sum(model.V))
 end
 
@@ -252,10 +283,24 @@ function check_survival!(agent, model)
         return false
     end
 
-    # Background mortality (elevated during clinical)
-    survival = model.weekly_survival
+    survival = 0.0
+    
+    if agent.age < 8
+        survival = model.surv_fawn_early
+    elseif agent.age < model.age_yearling
+        survival = model.surv_fawn_late
+    elseif agent.age < model.age_adult
+        survival = model.surv_yearling
+    else
+        survival = (agent.sex == :male) ? model.surv_adult_male : model.surv_adult_female
+    end
+
     if agent.status == :C
         survival /= model.clinical_mortality_mult
+    end
+
+    if agent.age >= model.max_age
+        survival = 0.0
     end
 
     if rand(abmrng(model)) >= survival
@@ -273,28 +318,37 @@ function reproduction!(model)
     N = nagents(model)
     K = model.carrying_capacity
 
-    # Density-dependent probability of reproducing (from paper)
-    pr_reproduce = model.annual_birth_rate / (1 + (N / K)^2)
-    weekly_pr = pr_reproduce / 52
-    expected_offspring = weekly_pr * model.offspring_per_birth
+    density_factor = 1.0 / (1.0 + (N / K)^2)
 
     AgentT = NamedTuple{(:pos, :home_center), Tuple{Tuple{Int,Int}, Tuple{Int,Int}}}
     new_agents = AgentT[]
 
     for agent in allagents(model)
-        if rand(abmrng(model)) < expected_offspring
-            # Offspring inherits home range with small variation
-            home_offset = (rand(abmrng(model), -3:3), rand(abmrng(model), -3:3))
-            new_home = (
-                clamp(agent.home_center[1] + home_offset[1], 1, nx),
-                clamp(agent.home_center[2] + home_offset[2], 1, ny),
-            )
-
-            push!(new_agents, (pos=new_home, home_center=new_home))
+        if agent.sex == :female
+            max_rate = 0.0
+            if agent.age < model.age_yearling
+                max_rate = model.birth_rate_fawn
+            elseif agent.age < model.age_adult
+                max_rate = model.birth_rate_yearling
+            else
+                max_rate = model.birth_rate_adult
+            end
+            
+            prob = (max_rate * density_factor) / 52.0
+            
+            if rand(abmrng(model)) < prob
+                offset = (rand(abmrng(model), -3:3), rand(abmrng(model), -3:3))
+                new_home = (
+                    clamp(agent.home_center[1] + offset[1], 1, nx),
+                    clamp(agent.home_center[2] + offset[2], 1, ny)
+                )
+                push!(new_agents, (pos=new_home, home_center=new_home))
+            end
         end
     end
 
     for na in new_agents
+        new_sex = rand(abmrng(model)) < 0.5 ? :male : :female
         model.population_grid[na.pos...] += 1
         add_agent!(na.pos, DeerAgent, model;
             status=:S,
@@ -303,6 +357,8 @@ function reproduction!(model)
             home_center=na.home_center,
             infection_source=:none,
             infection_tick=-1,
+            sex=new_sex,
+            age=0
         )
     end
 end

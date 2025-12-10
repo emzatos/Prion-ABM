@@ -4,6 +4,7 @@ using .PrionABM:
     compute_metrics as compute_metrics, 
     plot_dashboard as plot_dashboard, 
     plot_transmission_analysis as plot_transmission_analysis,
+    plot_demographics as plot_demographics,
     seic_color as seic_color,
     step! as step!
 using GLMakie
@@ -22,8 +23,8 @@ function run_interactive(model)
     fig, abmobs = abmexploration(model;
         agent_color = seic_color,
         agent_size = 0,
-        heatarray = :V,
-        heatkwargs = (colormap = :inferno, colorrange = (0, 750)),
+        heatarray = :population_grid,
+        heatkwargs = (colormap = :viridis, colorrange = (0, 10)),
         params = params
     )
     fig
@@ -43,7 +44,7 @@ function make_video(model, simulation_length::Int=520, title::String="CWD Spatia
         framerate = round(Int, simulation_length/10), # Always makes a 10 second video
         title = title,
         heatarray = heatmap_param,
-        heatkwargs = (colormap = :inferno, colorrange = (0, heatmap_limit)),
+        heatkwargs = (colormap = :viridis, colorrange = (0, heatmap_limit)),
     )
     println("Done!")
 end
@@ -62,8 +63,9 @@ function generate_images(model, simulation_length::Int=520, image_suffix::String
 
     dashboard_file_name = "results/cwd_dashboard_" * image_suffix * ".png"
     transmission_file_name = "results/cwd_transmission_analysis_" * image_suffix * ".png"
+    demographics_file_name = "results/cwd_demographics_" * image_suffix * ".png"
 
-    # Generate and save plots
+   # Generate and save plots
     println("\nGenerating dashboard...")
     fig1 = plot_dashboard(model)
     save(dashboard_file_name, fig1)
@@ -71,15 +73,15 @@ function generate_images(model, simulation_length::Int=520, image_suffix::String
     println("Generating transmission analysis...")
     fig2 = plot_transmission_analysis(model)
     save(transmission_file_name, fig2)
+
+    println("Generating demographic analysis...")
+    fig3 = plot_demographics(model)
+    save(demographics_file_name, fig3)
+
+
 end
 
 function main()
-    # The main simulation runner logic from the original file
-    susceptible(x) = count(i == :S for i in x)
-    exposed(x) = count(i == :E for i in x)
-    infected(x) = count(i == :I for i in x)
-    clinical(x) = count(i == :C for i in x)
-
     CairoMakie.activate!()
 
     println("Initializing model...")
@@ -108,14 +110,14 @@ function main()
 
     ## Create video from simulation
     # Heatmap evolution of population density over 100 years with no agents overlaid 
-    # make_video(model, 5200, "Population density heatmap", "popdensity", :population_grid, false, 10)
+    make_video(model, 5200, "Population density heatmap", "popdensity", :population_grid, false, 10)
 
-    # Heatmap evolution of prion density over 100 years with no agents overlaid
-    make_video(model, 5200, "Prion density heatmap", "prionload", :V, false, 750)
+    #Heatmap evolution of prion density over 100 years with no agents overlaid
+    #make_video(model, 5200, "Prion density heatmap", "prionload", :V, false, 750)
 
 
-    # generate_images(model, 520, "short")
-    # generate_images(model, 5200, "long")
+   #generate_images(model, 520, "short")
+   #generate_images(model, 5200, "long")
 
 end
 

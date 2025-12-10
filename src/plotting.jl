@@ -40,7 +40,7 @@ function plot_dashboard(model)
         roll_d = [mean(model.weekly_direct[max(1, i - window + 1):i]) for i in 1:length(model.weekly_direct)]
         roll_i = [mean(model.weekly_indirect[max(1, i - window + 1):i]) for i in 1:length(model.weekly_indirect)]
 
-        ax6 = Axis(fig[3, 2], xlabel="Years", ylabel="Weekly (13-wk avg)", title="Infection Rate by Source")
+        ax6 = Axis(fig[3, 2], xlabel="Years", ylabel="New Cases per Week", title="Weekly New Infections (Count)")
         lines!(ax6, years, roll_d, label="Direct", color=:coral, linewidth=2)
         lines!(ax6, years, roll_i, label="Indirect", color=:teal, linewidth=2)
         axislegend(ax6, position=:rt)
@@ -118,5 +118,41 @@ function plot_transmission_analysis(model)
     hm5 = heatmap!(ax5, ratio_map, colormap=:RdBu, colorrange=(0, 1))
     Colorbar(fig[2, 3][1, 2], hm5)
 
+    return fig
+end
+
+function plot_demographics(model)
+    fig = Figure(size=(1200, 800), fontsize=12)
+    
+    weeks = 1:length(model.weekly_prevalence)
+    years = weeks ./ 52
+
+    # 1. Prevalence by Sex
+    ax1 = Axis(fig[1, 1], xlabel="Years", ylabel="Prevalence", title="Prevalence by Sex")
+    lines!(ax1, years, model.prev_male, label="Male", color=:blue, linewidth=2)
+    lines!(ax1, years, model.prev_female, label="Female", color=:red, linewidth=2)
+    axislegend(ax1)
+
+    # 2. Prevalence by Age Class
+    ax2 = Axis(fig[1, 2], xlabel="Years", ylabel="Prevalence", title="Prevalence by Age Class")
+    lines!(ax2, years, model.prev_fawn, label="Fawn", color=:green, linewidth=1.5, linestyle=:dot)
+    lines!(ax2, years, model.prev_yearling, label="Yearling", color=:orange, linewidth=1.5, linestyle=:dash)
+    lines!(ax2, years, model.prev_adult, label="Adult", color=:purple, linewidth=2)
+    axislegend(ax2)
+
+    # 3. Population Pyramid (Snapshot of current state)
+    # We collect data from current agents
+    m_ages = [a.age / -52.0 for a in allagents(model) if a.sex == :male]
+    f_ages = [a.age / 52.0 for a in allagents(model) if a.sex == :female]
+    
+    ax3 = Axis(fig[2, 1:2], xlabel="Age (Years)", ylabel="Count", title="Population Age Structure (End of Sim)")
+    
+    # Plot Males as negative values to create "Left side" of pyramid
+    hist!(ax3, m_ages, color=(:blue, 0.5), label="Male")
+    # Plot Females as positive values
+    hist!(ax3, f_ages, color=(:red, 0.5), label="Female")
+    
+    axislegend(ax3)
+    
     return fig
 end
