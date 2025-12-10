@@ -21,26 +21,29 @@ function run_interactive(model)
 
     fig, abmobs = abmexploration(model;
         agent_color = seic_color,
-        agent_size = 4,
+        agent_size = 0,
         heatarray = :V,
-        heatkwargs = (colormap = :inferno, colorrange = (0, 50)),
+        heatkwargs = (colormap = :inferno, colorrange = (0, 750)),
         params = params
     )
     fig
 end
 
-function make_video(model)
+function make_video(model, simulation_length::Int=520, title::String="CWD Spatial ABM", video_suffix::String="", heatmap_param::Symbol= :V, overlay_agents::Bool = false, heatmap_limit::Int=50)
     println("Generating video...")
-    abmvideo("results/cwd_evolution.mp4", model;
-        agent_step! = agent_step!,
-        model_step! = model_step!,
+    file_name = "results/cwd_evolution_" * video_suffix * ".mp4"
+    agent_size = 0
+    if overlay_agents
+        agent_size = 4
+    end
+    abmvideo(file_name, model;
         agent_color = seic_color,
-        agent_size = 4,
-        frames = 2600,
-        framerate = 100,
-        title = "CWD Spatial ABM",
-        heatarray = :V,
-        heatkwargs = (colormap = :inferno, colorrange = (0, 50)),
+        agent_size = agent_size,
+        frames = simulation_length,
+        framerate = round(Int, simulation_length/10), # Always makes a 10 second video
+        title = title,
+        heatarray = heatmap_param,
+        heatkwargs = (colormap = :inferno, colorrange = (0, heatmap_limit)),
     )
     println("Done!")
 end
@@ -99,10 +102,20 @@ function main()
     )
 
     # Various ways to run simulation and gather data, uncomment to use
+
+    ## Run interactive simulation
     #run_interactive(model)
-    #make_video(model)
-    generate_images(model, 520, "short")
-    generate_images(model, 5200, "long")
+
+    ## Create video from simulation
+    # Heatmap evolution of population density over 100 years with no agents overlaid 
+    # make_video(model, 5200, "Population density heatmap", "popdensity", :population_grid, false, 10)
+
+    # Heatmap evolution of prion density over 100 years with no agents overlaid
+    make_video(model, 5200, "Prion density heatmap", "prionload", :V, false, 750)
+
+
+    # generate_images(model, 520, "short")
+    # generate_images(model, 5200, "long")
 
 end
 
