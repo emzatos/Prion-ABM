@@ -1,3 +1,15 @@
+ #=
+ 
+ Step function for agent. Describes what every agent does every timestep
+ The steps are:
+ Moving: Choose a new location for the next timestep up to 1 grid cell away. Update the population grids after the move
+ Transmission: Determine if the current healthy deer becomes infected at this timestep
+ Progression: For infected deer, move them through the stage compartments described in the paper (e.g., E1 -> E2). 
+   If the deer has reached the max length of their compartment length, move them to the next stage (e.g., I -> C)
+ Shed prions: For infected deer, add to the prion reservoir 
+
+ =#
+
 function agent_step!(agent, model)
     old_pos = agent.pos
     was_infectious = agent.status in (:I, :C)
@@ -15,6 +27,15 @@ function agent_step!(agent, model)
     progress_disease!(agent, model)
     shed_prions!(agent, model)
 end
+
+#= 
+
+Step function for the global model. Key steps:
+- Track counts of population at each stage
+- Determine which agents will die (from disease or natural causes) and remove them
+- Reproduction: determine how many new deer to add
+- Record statistics 
+=# 
 
 function model_step!(model)
     model.tick += 1
@@ -91,7 +112,7 @@ function move_deer!(agent, model)
     randomwalk!(agent, model)
 end
 
-
+# Compute force of infection based on local neighbors
 function compute_local_lambda(agent, model)
     nx, ny = size(model.V)
     pos = agent.pos
@@ -119,20 +140,7 @@ function compute_local_lambda(agent, model)
         Z_local = max(0, Z_local - 1)
     end
 
-
-
-
-    # Sum local environmental prion load
     V_local = model.V[pos...]
-    # for dx in -model.V_radius:model.V_radius
-    #     for dy in -model.V_radius:model.V_radius
-    #         x, y = pos[1] + dx, pos[2] + dy
-    #         if 1 <= x <= nx && 1 <= y <= ny
-    #             V_local += model.V[x, y]
-    #         end
-    #     end
-    # end
-
     N_local = max(N_local, 1)  # avoid division by zero
 
     k = model.k
