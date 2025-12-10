@@ -45,9 +45,9 @@ function make_video(model)
     println("Done!")
 end
 
-function generate_images(model)
-    println("Running simulation for 10 years (520 weeks)...")
-    for week in 1:520
+function generate_images(model, simulation_length::Int=520, image_suffix::String="")
+    println("Running simulation for $(simulation_length/52) years ($(simulation_length) weeks)...")
+    for week in 1:simulation_length
         step!(model, 1)
         if week % 52 == 0
             m = compute_metrics(model)
@@ -57,14 +57,17 @@ function generate_images(model)
         end
     end
 
+    dashboard_file_name = "results/cwd_dashboard_" * image_suffix * ".png"
+    transmission_file_name = "results/cwd_transmission_analysis_" * image_suffix * ".png"
+
     # Generate and save plots
     println("\nGenerating dashboard...")
     fig1 = plot_dashboard(model)
-    save("results/cwd_dashboard.png", fig1)
+    save(dashboard_file_name, fig1)
 
     println("Generating transmission analysis...")
     fig2 = plot_transmission_analysis(model)
-    save("results/cwd_transmission_analysis.png", fig2)
+    save(transmission_file_name, fig2)
 end
 
 function main()
@@ -98,7 +101,8 @@ function main()
     # Various ways to run simulation and gather data, uncomment to use
     #run_interactive(model)
     #make_video(model)
-    generate_images(model)
+    generate_images(model, 520, "short")
+    generate_images(model, 5200, "long")
 
 end
 
