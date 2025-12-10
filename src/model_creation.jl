@@ -26,6 +26,8 @@
     
     V::Matrix{Float64} = zeros(100, 100)
     V_cumulative::Matrix{Float64} = zeros(100, 100)
+    infectious_grid::Matrix{Int} = zeros(Int, 100, 100)
+    population_grid::Matrix{Int} = zeros(Int, 100,100)
     
     events::Vector{NamedTuple{(:tick, :source, :agent_id, :pos), Tuple{Int, Symbol, Int, Tuple{Int, Int}}}} = []
     
@@ -53,6 +55,8 @@ function model_initiation(;
     properties = ModelConstants(;
         V = zeros(Float64, nx, ny),
         V_cumulative = zeros(Float64, nx, ny),
+        infectious_grid = zeros(Int, nx, ny),
+        population_grid = zeros(Int, nx, ny),
         kw_args...
     )
 
@@ -83,6 +87,14 @@ function model_initiation(;
             infection_tick=inf_tick,
         )
     end
+
+    for agent in allagents(model)
+        if agent.status in (:I, :C)
+            model.infectious_grid[agent.pos...] += 1
+        end
+        model.population_grid[agent.pos...] += 1
+    end
+
 
     return model
 end

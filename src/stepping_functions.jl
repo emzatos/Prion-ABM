@@ -1,5 +1,16 @@
 function agent_step!(agent, model)
+    old_pos = agent.pos
+    was_infectious = agent.status in (:I, :C)
     move_deer!(agent, model)
+
+    if was_infectious && agent.pos != old_pos
+        model.infectious_grid[old_pos...] -= 1
+        model.infectious_grid[agent.pos...] += 1
+    end
+
+    model.population_grid[old_pos...] -= 1
+    model.population_grid[agent.pos...] += 1
+
     transmit!(agent, model)
     progress_disease!(agent, model)
     shed_prions!(agent, model)
@@ -34,7 +45,13 @@ function model_step!(model)
             push!(to_remove, agent.id)
         end
     end
+
     for id in to_remove
+        dying_agent = model[id]
+        if dying_agent.status in (:I, :C)
+            model.infectious_grid[dying_agent.pos...] -= 1
+        end
+        model.population_grid[dying_agent.pos...] -= 1
         remove_agent!(id, model)
     end
 
@@ -78,17 +95,32 @@ end
 function compute_local_lambda(agent, model)
     nx, ny = size(model.V)
     pos = agent.pos
+    x, y = pos
+    infectious_grid = model.infectious_grid
+    population_grid = model.population_grid
+    r = model.transmission_radius
+
 
     # Count local infectious deer (Z) and local population (N)
     Z_local = 0
     N_local = 0
     
-    for neighbor in nearby_agents(agent, model, model.transmission_radius)
-        N_local += 1
-        if neighbor.status in (:I, :C)
-            Z_local += 1
+    for dy in -r:r
+        for dx in -r:r
+            cx, cy = x + dx, y + dy
+            if 1 <= cx <= nx && 1 <= cy <= ny
+                Z_local += infectious_grid[cx, cy]
+                N_local += population_grid[cx, cy]
+            end
         end
     end
+
+    if agent.status in (:I, :C)
+        Z_local = max(0, Z_local - 1)
+    end
+
+
+
 
     # Sum local environmental prion load
     V_local = model.V[pos...]
@@ -170,6 +202,7 @@ function progress_disease!(agent, model)
         if agent.status == :E
             # Transition to Infectious
             agent.status = :I
+            model.infectious_grid[agent.pos...] += 1
             agent.weeks_in_state = 0
             agent.state_duration = sample_duration(abmrng(model), model.infectious_min, model.infectious_max)
 
@@ -254,6 +287,7 @@ function reproduction!(model)
     end
 
     for na in new_agents
+        model.population_grid[na.pos...] += 1
         add_agent!(na.pos, DeerAgent, model;
             status=:S,
             weeks_in_state=0,
