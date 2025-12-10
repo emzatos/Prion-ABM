@@ -4,11 +4,13 @@ using .PrionABM:
     compute_metrics as compute_metrics, 
     plot_dashboard as plot_dashboard, 
     plot_transmission_analysis as plot_transmission_analysis,
+    plot_spatial_scenario as plot_spatial_scenario,
     seic_color as seic_color,
     step! as step!
 using GLMakie
 using CairoMakie
 using Agents: abmexploration, abmvideo
+using DrWatson
 
 function run_interactive(model)
     println("Starting interactive simulation...")
@@ -21,7 +23,7 @@ function run_interactive(model)
 
     fig, abmobs = abmexploration(model;
         agent_color = seic_color,
-        agent_size = 0,
+        agent_size = 3,
         heatarray = :V,
         heatkwargs = (colormap = :inferno, colorrange = (0, 750)),
         params = params
@@ -88,7 +90,7 @@ function main()
         nx=100,
         ny=100,
         n_deer=5000,
-        n_infected=10,
+        n_infected=0,
         # Prion dynamics
         prion_survival=0.9967,    # ~4 year half-life
         shedding_rate=1.0,
@@ -99,23 +101,31 @@ function main()
         k=10000,                    # aggregation parameter (0.01, 1, or 10000)
         ε=0.0001,                    # 0=density-dependent, 1=frequency-dependent
         transmission_radius=2,
+        population_scenario=:random, # Values: :random -> default behavior. :center_cluster -> population clustered in the middle. :two_herds -> disjoint populations, one infected
+        prion_scenario=:cluster, # Values: :uniform -> uniform distribution. :cluster -> clustered around center. initial_prion_load must be > 0.
+        initial_prion_load=10.0,
     )
+
+    # for initial prion load of 10, cluster scenario, dies out at 0.9915, succumbs at 0.9916 half life 
 
     # Various ways to run simulation and gather data, uncomment to use
 
     ## Run interactive simulation
     #run_interactive(model)
 
+    # step!(model, 1000)
+    # println(sum(model.V))
+
     ## Create video from simulation
     # Heatmap evolution of population density over 100 years with no agents overlaid 
     # make_video(model, 5200, "Population density heatmap", "popdensity", :population_grid, false, 10)
 
     # Heatmap evolution of prion density over 100 years with no agents overlaid
-    make_video(model, 5200, "Prion density heatmap", "prionload", :V, false, 750)
+    #make_video(model, 5200, "Prion density heatmap", "prionload", :V, false, 750)
 
 
-    # generate_images(model, 520, "short")
-    # generate_images(model, 5200, "long")
+    generate_images(model, 5200, "long_prion_cluster")
+    #generate_images(model, 5200, "long")
 
 end
 

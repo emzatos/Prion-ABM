@@ -51,9 +51,13 @@ function plot_dashboard(model)
     hm1 = heatmap!(ax7, model.V, colormap=:YlOrRd)
     Colorbar(fig[4, 1][1, 2], hm1)
 
-    ax8 = Axis(fig[4, 2], xlabel="X", ylabel="Y", title="Cumulative Prion Deposition (log)", aspect=DataAspect())
-    hm2 = heatmap!(ax8, log1p.(model.V_cumulative), colormap=:viridis)
-    Colorbar(fig[4, 2][1, 2], hm2)
+    # ax8 = Axis(fig[4, 2], xlabel="X", ylabel="Y", title="Cumulative Prion Deposition (log)", aspect=DataAspect())
+    # hm2 = heatmap!(ax8, log1p.(model.V_cumulative), colormap=:viridis)
+    # Colorbar(fig[4, 2][1, 2], hm2)
+
+    ax9 = Axis(fig[4, 2], xlabel="X", ylabel="Y", title="Population Density", aspect=DataAspect())
+    hm3 = heatmap!(ax9, model.population_grid, colormap=:lajolla)
+    Colorbar(fig[4, 2][1, 2], hm3)
 
     return fig
 end

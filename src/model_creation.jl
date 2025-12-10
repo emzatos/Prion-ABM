@@ -59,6 +59,9 @@ function model_initiation(;
     n_deer=5000,
     n_infected=10,
     seed=0,
+    population_scenario=:random, # Values: :random -> default behavior. :center_cluster -> population clustered in the middle. :two_herds -> disjoint populations, one infected
+    prion_scenario=:random, # Values: :uniform -> uniform distribution. :cluster -> clustered around center. initial_prion_load must be > 0.
+    initial_prion_load=0.0,
     kw_args...
 )
     rng = Xoshiro(seed)
@@ -74,9 +77,36 @@ function model_initiation(;
     space = GridSpace((nx, ny); periodic=false)
     model = StandardABM(DeerAgent, space; agent_step!, model_step!, properties, rng)
 
+    herd_A_center = (round(Int, nx * 0.25), round(Int, ny*0.5))
+    herd_B_center = (round(Int, nx * 0.75), round(Int, ny*0.5))
+    herd_spread = nx / 20.0
+
     # Initialize deer population
     for i in 1:n_deer
-        home = (rand(abmrng(model), 1:nx), rand(abmrng(model), 1:ny))
+        pos = (1, 1)
+
+        if population_scenario == :random
+            pos = (rand(abmrng(model), 1:nx), rand(abmrng(model), 1:ny))
+
+        elseif population_scenario == :center_cluster
+            #cluster_spread = nx / 4.0
+            cluster_spread = herd_spread
+            center = (nx / 2, ny / 2)
+            x = clamp(round(Int, randn(abmrng(model)) * cluster_spread + center[1]), 1, nx)
+            y = clamp(round(Int, randn(abmrng(model)) * cluster_spread + center[2]), 1, ny)
+            pos = (x, y)
+
+        
+        elseif population_scenario == :two_herds
+            # Split population 50-50, infected only in one herd
+            herd_A = (i <= n_deer / 2)
+            center = herd_A ? herd_A_center : herd_B_center
+            x = clamp(round(Int, randn(abmrng(model)) * herd_spread + center[1]), 1, nx)
+            y = clamp(round(Int, randn(abmrng(model)) * herd_spread + center[2]), 1, ny)
+            pos = (x, y)
+        end
+        
+        # In two herd scenario, this will only apply to herd A (lower index agents)
         if i <= n_infected
             status = :I
             duration = sample_duration(abmrng(model), properties.infectious_min, properties.infectious_max)
@@ -89,23 +119,37 @@ function model_initiation(;
             inf_tick = -1
         end
 
-        add_agent!(home, DeerAgent, model;
+        add_agent!(pos, DeerAgent, model;
             status,
             weeks_in_state=0,
             state_duration=duration,
-            home_center=home,
+            home_center=pos,
             infection_source=source,
             infection_tick=inf_tick,
         )
-    end
 
-    for agent in allagents(model)
-        if agent.status in (:I, :C)
-            model.infectious_grid[agent.pos...] += 1
+        model.population_grid[pos...] += 1
+        if status == :I
+            model.infectious_grid[pos...] += 1
         end
-        model.population_grid[agent.pos...] += 1
     end
 
+    if initial_prion_load > 0
+        if prion_scenario == :cluster
+            cx, cy = nx /2, ny /2
+            r = 5
+            for x in (cx-r):(cx+r), y in (cy-r):(cy+r)
+                if 1 <= x <= nx && 1 <= y <= ny
+                    x = round(Int, x)
+                    y = round(Int, y)
+                    model.V[x, y] += initial_prion_load
+                    model.V_cumulative[x, y] += initial_prion_load
+                end
+            end
+        elseif prion_scenario == :uniform
+            model.V .+= initial_prion_load
+        end
+    end
 
     return model
 end
