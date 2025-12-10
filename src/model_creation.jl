@@ -15,8 +15,8 @@
     carcass_load::Float64 = 100.0       # How many prions dropped at death
 
     # Transmission related information, used when calculating force of infection
-    bd::Float64 = 9.2e-4,               # direct transmission coefficient
-    bi::Float64 = 5.5e-5,               # indirect transmission coefficient
+    bd::Float64 = 9.2e-4               # direct transmission coefficient
+    bi::Float64 = 5.5e-5               # indirect transmission coefficient
     k::Float64 = 0.1                    # aggregation factor from paper
     ε::Float64 = 0.0001                 # frequency/density dependence
     transmission_radius::Int = 2        # determines how far away an infected deer can be while still causing direct infections (not used for indirect)
