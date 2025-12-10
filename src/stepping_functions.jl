@@ -82,9 +82,13 @@ function compute_local_lambda(agent, model)
     # Count local infectious deer (Z) and local population (N)
     Z_local = 0
     N_local = 0
-
-    ids = nearby_ids(agent, model, model.transmission_radius)
-    Z_local = count(id -> model[id].status in (:I, :C), ids)
+    
+    for neighbor in nearby_agents(agent, model, model.transmission_radius)
+        N_local += 1
+        if neighbor.status in (:I, :C)
+            Z_local += 1
+        end
+    end
 
     # Sum local environmental prion load
     V_local = model.V[pos...]

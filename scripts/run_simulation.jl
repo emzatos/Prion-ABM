@@ -51,8 +51,8 @@ function generate_images(model)
         step!(model, 1)
         if week % 52 == 0
             m = compute_metrics(model)
-            println("  Year $(week÷52): Pop=$(model.final_population), " * 
-                    "Prev=$(round(model.peak_prevalence*100, digits=1))%, " * 
+            println("  Year $(week÷52): Pop=$(m.final_population), " * 
+                    "Prev=$(round(m.peak_prevalence*100, digits=1))%, " * 
                     "Direct=$(model.total_direct), Indirect=$(model.total_indirect)")
         end
     end
