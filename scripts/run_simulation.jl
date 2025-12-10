@@ -4,8 +4,10 @@ using .PrionABM:
     compute_metrics as compute_metrics, 
     plot_dashboard as plot_dashboard, 
     plot_transmission_analysis as plot_transmission_analysis,
-    seic_color as seic_color
+    seic_color as seic_color,
+    step! as step!
 using GLMakie
+using CairoMakie
 using Agents: abmexploration, abmvideo
 
 function run_interactive(model)
@@ -49,9 +51,9 @@ function generate_images(model)
         step!(model, 1)
         if week % 52 == 0
             m = compute_metrics(model)
-            println("  Year $(week÷52): Pop=$(m.final_population), " * 
-                    "Prev=$(round(m.peak_prevalence*100, digits=1))%, " * 
-                    "Direct=$(m.total_direct), Indirect=$(m.total_indirect)")
+            println("  Year $(week÷52): Pop=$(model.final_population), " * 
+                    "Prev=$(round(model.peak_prevalence*100, digits=1))%, " * 
+                    "Direct=$(model.total_direct), Indirect=$(model.total_indirect)")
         end
     end
 
@@ -75,27 +77,28 @@ function main()
     CairoMakie.activate!()
 
     println("Initializing model...")
+
     model = model_initiation(;
         nx=100,
         ny=100,
         n_deer=5000,
         n_infected=10,
+        # Prion dynamics
         prion_survival=0.9967,    # ~4 year half-life
         shedding_rate=1.0,
         carcass_load=100.0,
         # Transmission parameters
-        #bd=9.2e-4,               # direct transmission coefficient
-        #bi=5.5e-5,   
-        bd=0.017,
-        bi = 0.0003,            # indirect transmission coefficient
+        bd=9.2e-4,               # direct transmission coefficient
+        bi=5.5e-5,               # indirect transmission coefficient
         k=10000,                    # aggregation parameter (0.01, 1, or 10000)
         ε=0.0001,                    # 0=density-dependent, 1=frequency-dependent
-        transmission_radius=2)
+        transmission_radius=2,
+    )
 
     # Various ways to run simulation and gather data, uncomment to use
-    run_interactive(model)
+    #run_interactive(model)
     #make_video(model)
-    #generate_images(model)
+    generate_images(model)
 
 end
 
